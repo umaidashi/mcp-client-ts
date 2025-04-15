@@ -13,6 +13,7 @@ class MCPClient {
     anthropic;
     transport = null;
     tools = [];
+    messages = [];
     constructor() {
         this.anthropic = new Anthropic({
             apiKey: ANTHROPIC_API_KEY,
@@ -52,43 +53,97 @@ class MCPClient {
         }
     }
     async processQuery(query) {
-        const messages = [
-            {
-                role: "user",
-                content: query,
-            },
-        ];
+        this.messages.push({
+            role: "user",
+            content: query,
+        });
+        console.error("--------------------------------");
+        console.error("Messages:");
+        console.error(this.messages);
+        console.error("--------------------------------");
+        console.error("Tools:");
+        console.error(this.tools);
+        console.error("--------------------------------");
         const response = await this.anthropic.messages.create({
             model: "claude-3-5-sonnet-20241022",
             max_tokens: 1000,
-            messages,
+            messages: this.messages,
             tools: this.tools,
         });
+        console.error("--------------------------------");
+        console.error("Response:");
+        console.error(response);
+        console.error("--------------------------------");
         const finalText = [];
         const toolResults = [];
         for (const content of response.content) {
             if (content.type === "text") {
                 finalText.push(content.text);
+                this.messages.push({
+                    role: "assistant",
+                    content: content.text,
+                });
             }
             else if (content.type === "tool_use") {
                 const toolName = content.name;
                 const toolArgs = content.input;
+                console.error("--------------------------------");
+                console.error("Calling tool:");
+                console.error(toolName);
+                console.error(toolArgs);
+                console.error("--------------------------------");
                 const result = await this.mcp.callTool({
                     name: toolName,
                     arguments: toolArgs,
                 });
+                console.error("--------------------------------");
+                console.error("Tool result:");
+                console.error(result);
+                console.error("--------------------------------");
                 toolResults.push(result);
                 finalText.push(`[Calling tool ${toolName} with args ${JSON.stringify(toolArgs)}]`);
-                messages.push({
+                console.error("--------------------------------");
+                console.error("Tool results:");
+                console.error(toolResults);
+                console.error("--------------------------------");
+                console.error("Final text:");
+                console.error(finalText);
+                console.error("--------------------------------");
+                this.messages.push({
                     role: "user",
                     content: result.content,
                 });
+                console.error("--------------------------------");
+                console.error("Messages:");
+                console.error(this.messages);
+                console.error("--------------------------------");
                 const response = await this.anthropic.messages.create({
                     model: "claude-3-5-sonnet-20241022",
                     max_tokens: 1000,
-                    messages,
+                    messages: this.messages,
                 });
-                finalText.push(response.content[0].type === "text" ? response.content[0].text : "");
+                console.error("--------------------------------");
+                console.error("Response:");
+                console.error(response);
+                console.error("--------------------------------");
+                const assistantResponse = response.content[0].type === "text" ? response.content[0].text : "";
+                console.error("--------------------------------");
+                console.error("Assistant response:");
+                console.error(assistantResponse);
+                console.error("--------------------------------");
+                finalText.push(assistantResponse);
+                console.error("--------------------------------");
+                console.error("Final text:");
+                console.error(finalText);
+                console.error("--------------------------------");
+                this.messages.push({
+                    role: "assistant",
+                    content: assistantResponse,
+                });
+                console.error("--------------------------------");
+                console.error("Messages:");
+                console.error(this.messages);
+                console.error("--------------------------------");
             }
         }
         return finalText.join("\n");
@@ -134,9 +189,3 @@ async function main() {
     }
 }
 main();
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-function awesomeLog(message) {
-    console.log("--------------------------------");
-    console.log(message);
-    console.log("--------------------------------");
-}
