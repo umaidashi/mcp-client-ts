@@ -19,6 +19,17 @@ class MCPClient {
             apiKey: ANTHROPIC_API_KEY,
         });
         this.mcp = new Client({ name: "mcp-client-cli", version: "1.0.0" });
+        // システムプロンプトを最初のユーザーメッセージとして追加
+        this.messages.push({
+            role: "assistant",
+            content: `[システムプロンプト]
+あなたはユーザーの質問に対して、以下の方針で応答してください：
+
+1. 利用可能なツールが適切な場合は、それらを活用して応答してください。
+2. ツールの使用が不適切な場合は、自然な会話を心がけてください。
+3. ツールの使用有無に関わらず、常に丁寧で分かりやすい説明を心がけてください。
+4. ユーザーの質問の意図を正確に理解し、適切な応答を提供してください。`
+        });
     }
     async connectToServer(serverScriptPath) {
         try {
